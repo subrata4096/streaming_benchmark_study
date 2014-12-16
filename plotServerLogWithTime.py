@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys
+import collections
 from datetime import *
 import numpy as np
 from scipy.stats import *
@@ -7,15 +8,19 @@ import matplotlib.pyplot as plt
 
 #experiment_start_time = 0
 #experiment_rampup_time = 150
-experiment_rampup_time = 0
-experiment_steadystate_time = experiment_rampup_time + 400
-#experiment_steadystate_time = experiment_rampup_time + 600
+#experiment_rampup_time = 600
+#experiment_rampup_time = 800
+experiment_rampup_time = 10
+experiment_steadystate_time = experiment_rampup_time + 800
+#experiment_steadystate_time = experiment_rampup_time + 1200
 experiment_rampdown_time = experiment_steadystate_time + 30
 
 #target_RTSP_conn = 4200
 #target_RTSP_conn = 3000
 #target_RTSP_conn = 2000
-target_RTSP_conn = 2800
+#target_RTSP_conn = 2800
+#target_RTSP_conn = 100
+target_RTSP_conn = 0
 #target_RTSP_conn = 3500
 percentageOfTimeStreamsWithDelay = {}
 def plotCDF(ax, dataArr, label, color):
@@ -39,6 +44,21 @@ def plotCDF(ax, dataArr, label, color):
 	#plt.plot(bin_edges[1:], cdf, label=label, color=color)
 	ax.plot(bin_edges[1:], cdf, label=label, color=color)
 
+def plotWithTime(ax,timeValueMap):
+	#xvals = timeValueMap.keys()
+	#yvals = []
+	#for k in xvals:
+	#	yvals.append(timeValueMap[k])
+        #print timeValueMap
+      	od = collections.OrderedDict(sorted(timeValueMap.items()))
+        print od
+	xvals = []
+	yvals = []
+        for k, v in od.iteritems():
+		xvals.append(k)
+		yvals.append(v)
+	ax.plot(xvals, yvals)
+	#plt.scatter(xvals, yvals)
 
 def parseFile(logFile, avg_or_max_delay):
 	lines = logFile.readlines()
@@ -46,7 +66,7 @@ def parseFile(logFile, avg_or_max_delay):
 	header_found = False
 	bm_start_time = datetime(1970, 1, 1)
 	startTimeFound = False
-	avgDelayList = []
+	avgDelayList = {}
         percent_with_zero_delay = 0
         totalcount = 0
 	for line in lines:
@@ -100,15 +120,16 @@ def parseFile(logFile, avg_or_max_delay):
 		dt = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
 		
 		#print bm_start_time, dt		
-		expDuration = (dt - bm_start_time).total_seconds()
+		expDuration = float((dt - bm_start_time).total_seconds())
 		#print dt, expDuration
 		if((expDuration >= experiment_rampup_time) and (expDuration <= experiment_steadystate_time)):	
 			#print "entering:"
 			if(avgDelay < 0):
 				avgDelay = 0
-                        if(avgDelay > 200):
-				continue
-			avgDelayList.append(avgDelay)
+                        #if(avgDelay > 200):
+			#	continue
+			#avgDelayList.append(avgDelay)
+			avgDelayList[expDuration] = avgDelay
 		
 	return avgDelayList	
 
@@ -122,7 +143,7 @@ def calcPercentageOfTimeDelay(delayList,index):
         percentageOfTimeStreamsWithDelay[index] = percentage
 
 
-num_of_logs = 10
+num_of_logs = 1
 if __name__ == "__main__":
 	logFileName = sys.argv[1]
 	#logFileName2 = sys.argv[2]
@@ -146,39 +167,39 @@ if __name__ == "__main__":
 		logFile = open(logFileName, 'r')
         	avgDelayList = parseFile(logFile,avg_or_max_delay)	
 		print "numOfPoints" , len(avgDelayList)
-		print avgDelayList
-                calcPercentageOfTimeDelay(avgDelayList, i)
-		arr = np.array(avgDelayList)
-		mean = np.mean(arr)
-		avg = np.average(arr)
-		print mean, avg
-		#rv_discrete.cdf(arr)
-		#hist, bin_edges = np.histogram(np.random.randint(0,10,100))
-		#cdf = np.cumsum(hist)
-		#print cdf
-		if(i == 0):	
-			plotCDF(ax, arr, '10', 'blue')
-                elif(i == 1):
-                        plotCDF(ax, arr, '20', 'yellow')
-		elif(i == 2):
-			plotCDF(ax, arr, '50', 'red')
-		elif(i == 3):
-			plotCDF(ax, arr, '100', 'green')
-		elif(i == 4):
-			plotCDF(ax, arr, '200', 'black')
-		elif(i == 5):
-			plotCDF(ax, arr, '500', 'brown')
-		#elif(i == 6):
-		#	plotCDF(ax, arr, '1000', 'cyan')
-                #elif(i == 6):
-                 #       plotCDF(ax, arr, '500', 'yellow')
+		#print avgDelayList
+                #calcPercentageOfTimeDelay(avgDelayList, i)
+		#arr = np.array(avgDelayList)
+		#mean = np.mean(arr)
+		#avg = np.average(arr)
+		#print mean, avg
+		##rv_discrete.cdf(arr)
+		##hist, bin_edges = np.histogram(np.random.randint(0,10,100))
+		##cdf = np.cumsum(hist)
+		##print cdf
+		#if(i == 0):	
+		#	plotCDF(ax, arr, '10', 'blue')
+                #elif(i == 1):
+                #        plotCDF(ax, arr, '20', 'yellow')
+		#elif(i == 2):
+		#	plotCDF(ax, arr, '50', 'red')
+		#elif(i == 3):
+		#	plotCDF(ax, arr, '100', 'green')
+		#elif(i == 4):
+		#	plotCDF(ax, arr, '200', 'black')
+		#elif(i == 5):
+		#	plotCDF(ax, arr, '500', 'brown')
+		##elif(i == 6):
+		##	plotCDF(ax, arr, '1000', 'cyan')
+                ##elif(i == 6):
+                # #       plotCDF(ax, arr, '500', 'yellow')
 
-        print percentageOfTimeStreamsWithDelay
+        #print percentageOfTimeStreamsWithDelay
 	# Now add the legend with some customizations.
-        
-        plt.xlabel('avg delay in sec')
-	plt.ylabel('cdf') 
-	legend = ax.legend(loc='upper right', shadow=False)	
+        plotWithTime(ax,avgDelayList)        
+        plt.xlabel('time in sec')
+	plt.ylabel('avg delay values (in ms)') 
+	#legend = ax.legend(loc='upper right', shadow=False)	
 	#ax.legend().set_visible(True)
 	plt.show()
 
