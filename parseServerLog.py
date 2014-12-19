@@ -7,16 +7,22 @@ import matplotlib.pyplot as plt
 
 #experiment_start_time = 0
 #experiment_rampup_time = 150
-experiment_rampup_time = 0
+#experiment_rampup_time = 0
+experiment_rampup_time = 300
 experiment_steadystate_time = experiment_rampup_time + 400
+#experiment_steadystate_time = experiment_rampup_time + 360
 #experiment_steadystate_time = experiment_rampup_time + 600
 experiment_rampdown_time = experiment_steadystate_time + 30
 
 #target_RTSP_conn = 4200
 #target_RTSP_conn = 3000
 #target_RTSP_conn = 2000
-target_RTSP_conn = 2800
+#target_RTSP_conn = 2800
+target_RTSP_conn = 4000
 #target_RTSP_conn = 3500
+target_throughput = 440000
+#target_throughput = 500000
+#target_throughput = 0
 percentageOfTimeStreamsWithDelay = {}
 def plotCDF(ax, dataArr, label, color):
 	#dataArr = [0,0,0,0,1,1,1,2,2,3]
@@ -72,11 +78,17 @@ def parseFile(logFile, avg_or_max_delay):
 
 		rtsp_conns_str = fields[0].strip()
 		rtsp_conns = int(rtsp_conns_str)
+                
+		throughput = int(fields[3].strip())
+
                 d = target_RTSP_conn - rtsp_conns
 		#print "here,", rtsp_conns, target_RTSP_conn, d
 		#if(d == 0):
 		if(rtsp_conns < target_RTSP_conn):
 			continue
+		
+		if(throughput < target_throughput):
+                        continue		
 
 		#print "passed"	
 		avgDelay_Str = ""
@@ -90,6 +102,7 @@ def parseFile(logFile, avg_or_max_delay):
 		timeStamp = fields[11] + " " + fields[12]
 		#print avgDelay, timeStamp
 
+ 
 		if((startTimeFound == False) and (avgDelay != 0)): 
 			bm_start_time = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
 			startTimeFound = True
@@ -106,8 +119,10 @@ def parseFile(logFile, avg_or_max_delay):
 			#print "entering:"
 			if(avgDelay < 0):
 				avgDelay = 0
-                        if(avgDelay > 200):
-				continue
+                        #if(avgDelay > 200):
+				#continue
+                        #if(avgDelay > 1000):
+			#	avgDelay = 1000
 			avgDelayList.append(avgDelay)
 		
 	return avgDelayList	
@@ -119,10 +134,12 @@ def calcPercentageOfTimeDelay(delayList,index):
 			total_zero += 1
 
         percentage = total_zero/float(len(delayList))
+        percentage = 1.0 - percentage
         percentageOfTimeStreamsWithDelay[index] = percentage
 
 
-num_of_logs = 10
+allDelays = {}
+num_of_logs = 8
 if __name__ == "__main__":
 	logFileName = sys.argv[1]
 	#logFileName2 = sys.argv[2]
@@ -151,7 +168,8 @@ if __name__ == "__main__":
 		arr = np.array(avgDelayList)
 		mean = np.mean(arr)
 		avg = np.average(arr)
-		print mean, avg
+		print "Mean and Avg delay is: " , mean, avg
+		allDelays[i] = avg
 		#rv_discrete.cdf(arr)
 		#hist, bin_edges = np.histogram(np.random.randint(0,10,100))
 		#cdf = np.cumsum(hist)
@@ -175,7 +193,7 @@ if __name__ == "__main__":
 
         print percentageOfTimeStreamsWithDelay
 	# Now add the legend with some customizations.
-        
+        print allDelays
         plt.xlabel('avg delay in sec')
 	plt.ylabel('cdf') 
 	legend = ax.legend(loc='upper right', shadow=False)	

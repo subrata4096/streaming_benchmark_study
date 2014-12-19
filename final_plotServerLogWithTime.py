@@ -62,13 +62,13 @@ def plotWithTime(ax,timeValueMap):
 	ax.plot(xvals, yvals)
 	#plt.scatter(xvals, yvals)
 
-def parseFile(logFile, avg_or_max_delay):
+def parseFile(logFile, avg_or_max_delay,avgDelayList):
 	lines = logFile.readlines()
 	server_started = False
 	header_found = False
 	bm_start_time = datetime(1970, 1, 1)
 	startTimeFound = False
-	avgDelayList = {}
+	#avgDelayList = {}
         percent_with_zero_delay = 0
         totalcount = 0
 	for line in lines:
@@ -131,7 +131,11 @@ def parseFile(logFile, avg_or_max_delay):
                         #if(avgDelay > 200):
 			#	continue
 			#avgDelayList.append(avgDelay)
-			avgDelayList[expDuration] = avgDelay
+			if(expDuration not in avgDelayList):
+				avgDelayList[expDuration] = []
+
+			#avgDelayList[expDuration] = avgDelay
+			avgDelayList[expDuration].append(avgDelay)
 		
 	return avgDelayList	
 
@@ -144,8 +148,28 @@ def calcPercentageOfTimeDelay(delayList,index):
         percentage = total_zero/float(len(delayList))
         percentageOfTimeStreamsWithDelay[index] = percentage
 
+def getTimeWiseAvg(avgDelayList):
+	newAvgList = {}
+	for k in avgDelayList.keys():
+		delayList = avgDelayList[k]
+		arr = np.array(delayList)
+		delayAvg = np.array(arr)
+		newAvgList[k] = delayAvg
+		print "delays:", arr, "  avg: " , delayAvg
+	return newAvgList
 
-num_of_logs = 1
+def outputToCSVFile(fname,avgDelayList):
+	od = collections.OrderedDict(sorted(avgDelayList.items()))
+	f = open(fname, "w")
+	#for k in avgDelayList.keys():
+	for k, v in od.iteritems():
+		delayList = avgDelayList[k]
+                avgVal = delayList[0]
+		line = str(k) + "," + str(avgVal) + "\n"
+		f.write(line)
+	f.close()
+
+num_of_logs = 3
 if __name__ == "__main__":
 	logFileName = sys.argv[1]
 	#logFileName2 = sys.argv[2]
@@ -162,12 +186,13 @@ if __name__ == "__main__":
 		avg_or_max_delay = "max"
 	
   	fig, ax = plt.subplots()	
-
+	avgDelayList = {}
 	for i in range(num_of_logs):
-		logFileName = sys.argv[i+1]
+		logFileName= sys.argv[i+1]
 		print "logFile: " , logFileName , "\n"
 		logFile = open(logFileName, 'r')
-        	avgDelayList = parseFile(logFile,avg_or_max_delay)	
+        	#avgDelayList = parseFile(logFile,avg_or_max_delay)	
+        	parseFile(logFile,avg_or_max_delay,avgDelayList)	
 		print "numOfPoints" , len(avgDelayList)
 		#print avgDelayList
                 #calcPercentageOfTimeDelay(avgDelayList, i)
@@ -198,6 +223,10 @@ if __name__ == "__main__":
 
         #print percentageOfTimeStreamsWithDelay
 	# Now add the legend with some customizations.
+
+	avgDelayList = getTimeWiseAvg(avgDelayList)
+	fname = sys.argv[num_of_logs+1]
+	outputToCSVFile(fname,avgDelayList) 
         plotWithTime(ax,avgDelayList)        
         plt.xlabel('time in sec')
 	plt.ylabel('avg delay values (in ms)') 
